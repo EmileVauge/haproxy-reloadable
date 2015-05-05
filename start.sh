@@ -37,17 +37,12 @@ cleanup() {
 trap reload SIGUSR2
 trap cleanup SIGTERM
 
-inotifywait -q -e create,delete,modify,attrib $CFG_FILE > "$FIFO" &
+inotifywait -m -q -e create,delete,modify,attrib --format '%:e' $CFG_FILE > "$FIFO" &
 INOTIFY_PID=$!
 
-while read
+while read event
 do
-reload
+reload	
 done < "$FIFO"
 
-#while true; do
-#  wait $HAPROXY_PID
-#  echo "Parent HAProxy closed $HAPROXY_PID"
-#  sleep 1
-#  cat "/proc/$HAPROXY_PID/cmdline" > /dev/null || exit 0
-#done
+cleanup
