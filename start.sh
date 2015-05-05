@@ -3,6 +3,12 @@
 PID_FILE=/var/run/haproxy.pid
 CFG_FILE=/usr/local/etc/haproxy/haproxy.cfg
 CMD=haproxy
+FIFO="/tmp/inotify2.fifo"
+
+if [ ! -e "$FIFO" ]
+then
+mkfifo "$FIFO"
+fi
 
 $CMD -p $PID_FILE -f $CFG_FILE -Ds &
 HAPROXY_PID=$!
@@ -23,21 +29,21 @@ cleanup() {
   echo "Stopping HAProxy..."
   kill $(cat $PID_FILE)
   echo "HAProxy stopped."
-  exit 0
+  kill $INOTIFY_PID
+  rm $FIFO
+  exit
 }
 
 trap reload SIGUSR2
 trap cleanup SIGTERM
 
-# Check if config has changed
-while inotifywait -q -e create,delete,modify,attrib $CFG_FILE; do
-  if [ -f $PID_FILE ]; then
-    reload
-  else
-    log "Error: no $HAPROXY_PID_FILE present, HAProxy exited."
-    break
-  fi
-done
+inotifywait -q -e create,delete,modify,attrib $CFG_FILE > "$FIFO" &
+INOTIFY_PID=$!
+
+while read
+do
+reload &
+done < "$FIFO"
 
 #while true; do
 #  wait $HAPROXY_PID
