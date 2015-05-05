@@ -21,6 +21,7 @@ reload() {
 
 cleanup() {
   kill $(cat $PID_FILE)
+  exit 0
 }
 
 trap reload SIGUSR2
