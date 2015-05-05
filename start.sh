@@ -42,7 +42,7 @@ INOTIFY_PID=$!
 
 while read
 do
-reload &
+reload
 done < "$FIFO"
 
 #while true; do
