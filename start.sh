@@ -20,7 +20,9 @@ reload() {
 }
 
 cleanup() {
+  echo "Stopping HAProxy..."
   kill $(cat $PID_FILE)
+  echo "HAProxy stopped."
   exit 0
 }
 
