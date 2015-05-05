@@ -26,9 +26,19 @@ cleanup() {
 trap reload SIGUSR2
 trap cleanup SIGTERM
 
-while true; do
-  wait $HAPROXY_PID
-  echo "Parent HAProxy closed $HAPROXY_PID"
-  sleep 1
-  cat "/proc/$HAPROXY_PID/cmdline" > /dev/null || exit 0
+# Check if config has changed
+while inotifywait -q -e create,delete,modify,attrib $CFG_FILE; do
+  if [ -f $PID_FILE ]; then
+    reload
+  else
+    log "Error: no $HAPROXY_PID_FILE present, HAProxy exited."
+    break
+  fi
 done
+
+#while true; do
+#  wait $HAPROXY_PID
+#  echo "Parent HAProxy closed $HAPROXY_PID"
+#  sleep 1
+#  cat "/proc/$HAPROXY_PID/cmdline" > /dev/null || exit 0
+#done
