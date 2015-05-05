@@ -24,7 +24,7 @@ cleanup() {
 }
 
 trap reload SIGUSR2
-trap cleanup EXIT
+trap cleanup SIGTERM
 
 while true; do
   wait $HAPROXY_PID
