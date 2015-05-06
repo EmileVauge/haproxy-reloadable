@@ -10,6 +10,8 @@ then
 mkfifo "$FIFO"
 fi
 
+/etc/init.d/rsyslog start
+
 $CMD -p $PID_FILE -f $CFG_FILE -Ds &
 HAPROXY_PID=$!
 
@@ -18,11 +20,21 @@ sleep 0.5
 echo "Started HAProxy $HAPROXY_PID"
 echo "in PID file: $(cat $PID_FILE)"
 
+waiting() {
+  inotifywait -q -e create,delete,modify,attrib --format '%:e' $CFG_FILE > "$FIFO" &
+  INOTIFY_PID=$!
+  while read event
+  do
+    reload  
+  done < "$FIFO"
+  }
+
 reload() {
   CHILD_PIDS=`cat $PID_FILE`
   echo "Reloading HAProxy process $HAPROXY_PID ($CHILD_PIDS)"
   $CMD -p $PID_FILE -f $CFG_FILE -Ds -sf $CHILD_PIDS &
   HAPROXY_PID=$!
+  waiting
 }
 
 cleanup() {
@@ -37,12 +49,4 @@ cleanup() {
 trap reload SIGUSR2
 trap cleanup SIGTERM
 
-inotifywait -m -q -e create,delete,modify,attrib --format '%:e' $CFG_FILE > "$FIFO" &
-INOTIFY_PID=$!
-
-while read event
-do
-reload	
-done < "$FIFO"
-
-cleanup
+waiting
